@@ -1,10 +1,47 @@
 # wist-delivery
 
+Delivery-integrity primitives for the **wist** data plane — gap detection, dedup, filtering, and end-to-end reconciliation. IO-free.
+
+[![crates.io](https://img.shields.io/crates/v/wist-delivery.svg)](https://crates.io/crates/wist-delivery)
+[![docs.rs](https://img.shields.io/docsrs/wist-delivery/latest.svg)](https://docs.rs/wist-delivery)
+[![Downloads](https://img.shields.io/crates/d/wist-delivery.svg)](https://crates.io/crates/wist-delivery)
+[![MSRV](https://img.shields.io/badge/rustc-1.85+-orange.svg)](#)
+[![CI](https://github.com/dayu-sec/wist-delivery/actions/workflows/ci.yml/badge.svg)](https://github.com/dayu-sec/wist-delivery/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/dayu-sec/wist-delivery/branch/main/graph/badge.svg)](https://codecov.io/gh/dayu-sec/wist-delivery)
+[![dependency status](https://deps.rs/repo/github/dayu-sec/wist-delivery/status.svg)](https://deps.rs/repo/github/dayu-sec/wist-delivery)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
+`wist-delivery` keeps **delivery accounting consistent on the receiving side** of the wist data
+plane. The source assigns each record a per-agent monotonic `seq`; from that sequence this crate
+answers three questions — *did anything get lost?*, *have we already seen this record?*, and
+*what was intentionally filtered?* — using a watermark-bounded window that tolerates
+out-of-order arrival and only declares loss once a sequence falls out of the window. It also
+provides multi-hop loss attribution (`HopLosses`) and an end-to-end delivery ledger
+(`DeliveryLedger`).
+
+Shared by the receiving endpoints (gateway / center data platform) so that dedup, gap detection,
+filtering, and reconciliation all use the **same accounting**. **Purposely no IO, no storage,
+no protocol** — only a pure state machine plus serializable types, so it stays decoupled and
+independently unit-testable.
+
+```rust
+use wist_delivery::{Acceptance, QualityChannel};
+
+let mut channel = QualityChannel::new("agent-001", 4); // lag = 4
+
+match channel.on_record(0) {
+    Acceptance::Accepted => { /* hand to ETL */ }
+    Acceptance::Rejected => { /* duplicate, or already filtered */ }
+}
+```
+
+## 中文
+
 接收端「交付完整性」纯逻辑 crate：**丢检查 + 去重 + 过滤 + 对账**。
 
-供数据面接收端（`wist-gateway` / `wist-gateway`、`wist-center` 数据平台）共用，保证去重、缺口检测、过滤与对账的口径一致。**只做纯状态机与可序列化类型，不绑定 IO / 存储 / 协议**。
+供数据面接收端（`wist-gateway`、`wist-center` 数据平台）共用，保证去重、缺口检测、过滤与对账的口径一致。**只做纯状态机与可序列化类型，不绑定 IO / 存储 / 协议**。
 
-设计背景见 [`doc/design/telemetry/data-loss-prevention.md`](../warp-insight/doc/design/telemetry/data-loss-prevention.md)。
+设计背景见 [`data-loss-prevention.md`](https://github.com/wp-labs/warp-insight/blob/main/doc/design/telemetry/data-loss-prevention.md)。
 
 ## 定位与边界
 
@@ -23,9 +60,18 @@
 
 ## 快速开始
 
+本地并列仓库（path）：
+
 ```toml
 [dependencies]
 wist-delivery = { path = "../wist-delivery" }
+```
+
+或从 Git：
+
+```toml
+[dependencies]
+wist-delivery = { git = "https://github.com/dayu-sec/wist-delivery" }
 ```
 
 ## 模块速览
@@ -178,6 +224,10 @@ let json = serde_json::to_string(&report).unwrap();
 
 ## 关联文档
 
-- 设计：`doc/design/telemetry/data-loss-prevention.md`
-- 帧格式：`doc/design/telemetry/telemetry-uplink-protocol.md`
-- 文件日志输入 spec（`seq`/去重 §11.1.1、背压 §12）：`crates/wist-agentd/docs/log-file-input-spec.md`
+- 设计：[`data-loss-prevention.md`](https://github.com/wp-labs/warp-insight/blob/main/doc/design/telemetry/data-loss-prevention.md)
+- 帧格式：[`telemetry-uplink-protocol.md`](https://github.com/wp-labs/warp-insight/blob/main/doc/design/telemetry/telemetry-uplink-protocol.md)
+- 文件日志输入 spec（`seq`/去重 §11.1.1、背压 §12）：[`log-file-input-spec.md`](https://github.com/dayu-sec/wist-agentd/blob/main/docs/log-file-input-spec.md)
+
+## License
+
+Licensed under the Apache License, Version 2.0 ([LICENSE](LICENSE) or <http://www.apache.org/licenses/LICENSE-2.0>).
