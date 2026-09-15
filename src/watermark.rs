@@ -178,12 +178,12 @@ impl WatermarkTracker {
                 self.committed += 1;
             }
             // 2. 结算覆盖 `committed` 的带外丢弃区间（跳过整段，不判丢）。
-            if let Some((&start, &end)) = self.dropped_ranges.range(..=self.committed).next_back() {
-                if self.committed <= end {
-                    self.dropped_ranges.remove(&start);
-                    self.committed = end + 1;
-                    continue;
-                }
+            if let Some((&start, &end)) = self.dropped_ranges.range(..=self.committed).next_back()
+                && self.committed <= end
+            {
+                self.dropped_ranges.remove(&start);
+                self.committed = end + 1;
+                continue;
             }
             // 3. 窗口溢出：`committed` 落后 `high` 超过 `lag`，该缺口判定丢失。
             if self.high.saturating_sub(self.committed) > self.lag {
