@@ -1,8 +1,16 @@
 [package]
 name = "wist-delivery"
-version = "0.1.2" #@gxl:set(version)
+version = "0.1.3" #@gxl:set(version)
 edition = "2024"
 license = "Apache-2.0"
+authors = ["wist Dev Team"]
+description = "Delivery-integrity primitives for the wist data plane: gap detection, dedup, filtering, and end-to-end reconciliation"
+repository = "https://github.com/dayu-sec/wist-delivery"
+homepage = "https://github.com/dayu-sec/wist-delivery"
+documentation = "https://docs.rs/wist-delivery"
+readme = "README.md"
+keywords = ["wist", "delivery", "dedup", "watermark", "reconciliation"]
+categories = ["data-structures", "network-programming"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
